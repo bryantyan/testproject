@@ -1,0 +1,297 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; erlang distel Mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; This is needed for Erlang mode setup
+(setq erlang-root-dir "/usr/local/lib/erlang")
+(setq load-path (cons "/usr/local/lib/erlang/lib/tools-2.6.5/emacs" load-path))
+(setq exec-path (cons "/usr/local/lib/erlang/bin" exec-path))
+(require 'erlang-start)
+
+;; This is needed for Distel setup
+(let ((distel-dir "/usr/local/lib/erlang/lib/distel-4.0.1/elisp"))
+  (unless (member distel-dir load-path)
+    ;; Add distel-dir to the end of load-path
+    (setq load-path (append load-path (list distel-dir)))))
+
+(require 'distel)
+(distel-setup)
+
+
+;; Some Erlang customizations
+(add-hook 'erlang-mode-hook
+          (lambda ()
+            ;; when starting an Erlang shell in Emacs, default in the node name
+            (setq inferior-erlang-machine-options '("-sname" "emacs"))
+            ;; add Erlang functions to an imenu menu
+            (imenu-add-to-menubar "imenu")))
+
+;; A number of the erlang-extended-mode key bindings are useful in the shell too
+(defconst distel-shell-keys
+  '(("\C-\M-i"   erl-complete)
+    ("\M-?"      erl-complete)
+    ("\M-."      erl-find-source-under-point)
+    ("\M-,"      erl-find-source-unwind)
+    ("\M-*"      erl-find-source-unwind)
+    )
+  "Additional keys to bind when in Erlang shell.")
+
+(add-hook 'erlang-shell-mode-hook
+          (lambda ()
+            ;; add some Distel bindings to the Erlang shell
+            (dolist (spec distel-shell-keys)
+              (define-key erlang-shell-mode-map (car spec) (cadr spec)))))
+
+
+(load-file "~/emacs/Configurations/erlang-skel.el")
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; php mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(add-to-list 'load-path "~/emacs/Extensions/php-mode-1.5.0")
+(require 'php-mode)
+;;(add-hook 'php-mode-user-hook 'turn-on-font-lock)
+(add-to-list 'auto-mode-alist '("\\.php[34]?\'" . php-mode))
+
+;;(define-key php-mode-map
+;;  "\C-c\C-f"
+;;  'php-search-documentation)
+;;(global-set-key [(shift tab)] 'my-indent-or-complete)
+(add-hook 'php-mode-hook (lambda () (local-set-key "\r" 'newline-and-indent)))
+
+(require 'php-electric)
+(add-hook 'php-mode-hook
+          '(lambda ()
+             (define-abbrev php-mode-abbrev-table "ex" "extends")
+             ;;(define-key php-mode-map '[M-S-up] 'flymake-goto-prev-error)
+             ;;(define-key php-mode-map '[M-S-down] 'flymake-goto-next-error)
+             ;;php-mode php-electric-mode
+
+             (php-electric-mode t)
+             (tabbar-local-mode 1)
+             ;;(header-line-format 0)
+             (semantic-show-unmatched-syntax-mode 0)
+             ;;      (c-set-style "Stroustrup")
+             ;;      (outline-minor-mode "t")
+             (setq c-basic-offset 4)
+             ;;      (setq php-indent-level 4
+             ;;            php-continued-statement-offset 4
+             ;;            php-continued-brace-offset 0
+             ;;            php-brace-offset 0
+             ;;            php-brace-imaginary-offset 0
+             ;;            php-label-offset -4)
+             ))
+;;
+;;(defun phplint-thisfile ()
+;;  (interactive)
+;;  (compile (format "php -l %s" (buffer-file-name))))
+;;(add-hook 'php-mode-hook
+;;        '(lambda ()
+;;           (local-set-key [f8] 'phplint-thisfile)))
+;;;; end of php lint
+;;
+;;;;(defun clean-php-mode ()
+;;;;  (interactive)
+;;;;  (php-mode)
+;;;;  (setq c-basic-offset 2) ; 2 tabs indenting
+;;;;  (setq indent-tabs-mode nil)
+;;;;  (setq fill-column 78)
+;;;;  (c-set-offset 'case-label '+)
+;;;;  (c-set-offset 'arglist-close 'c-lineup-arglist-operators))
+;;;;(c-set-offset 'arglist-intro '+) ; for FAPI arrays and DBTNG
+;;;;(c-set-offset 'arglist-cont-nonempty 'c-lineup-math) ; for DBTNG fields and values
+;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; php-doc
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(require 'tree-mode)
+(require 'windata)
+(require 'help-dwim)
+(require 'php-doc nil t)
+(setq php-doc-directory "/Users/bryant/Books/php/php5")
+
+(defun my-php-mode-hook ()
+  (tempo-use-tag-list 'tempo-php-tags)
+  (font-lock-add-keywords nil gtkdoc-font-lock-keywords)
+  (setq php-beginning-of-defun-regexp "^\\s-*\\(?:\\(?:abstract\\|final\\|private\\|protected\\|public\\|static\\)\\s-+\\)*function\\s-+\\(\\(?:\\sw\\|\\s_\\)+\\)\\s-*(")
+  (local-set-key (kbd "\C-c h") 'php-doc)
+
+  (require 'xcscope)
+  (when (featurep 'php-doc)
+    (local-set-key "\t" 'php-doc-complete-function)
+    (set (make-local-variable 'eldoc-documentation-function)
+         'php-doc-eldoc-function)
+    (setq php-doc-browser-function 'w3m-browse-url)
+    (eldoc-mode 1))
+  (when (featurep 'simpletest)
+    (simpletest-mode 1))
+  (local-set-key (kbd "C-M-a") 'beginning-of-defun)
+  (local-set-key (kbd "C-M-e") 'end-of-defun)
+  ;;(local-set-key (kbd "C-c s") 'compile-dwim-compile)
+  )
+(add-hook 'php-mode-hook 'my-php-mode-hook)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; xcsope
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; org-mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;(setq load-path (cons "~/lib/emacs-lisp/org-7.01h/lisp" load-path))
+;;(setq load-path (cons "~/lib/emacs-lisp/org-7.01h/contrib/lisp" load-path))
+
+(require 'org-install)
+;;(require 'org-publish)
+;;(setq org-hide-leading-stars t)
+;;(add-to-list 'auto-mode-alist '("\\.org\\'" . org-mode))
+;;(add-hook 'org-mode-hook 'turn-on-font-lock)
+;;(add-hook 'org-mode-hook
+;;          (lambda () (setq truncate-lines nil)))
+;;
+;;ore-link)
+;;enda)
+;;witchb)
+;;
+;;
+;;newgtd.org"
+;;birthday.org"
+;;ments/org/work.org"
+;;/Documents/org/school.org"
+;;~/Documents/org/home.org"
+;;
+
+;;(custom-set-variables
+;; '(org-agenda-ndays 7)
+;; '(org-agenda-repeating-timestamp-show-all nil)
+;; '(org-agenda-restore-windows-after-quit t)
+;; '(org-agenda-show-all-dates t)
+;; '(org-agenda-skip-deadline-if-done t)
+;;; '(org-agenda-skip-scheduled-if-done t)
+;; '(org-agenda-sorting-strategy (quote ((agenda time-up priority-down tag-up) (todo tag-up))))
+;; '(org-agenda-start-on-weekday nil)
+;; '(org-agenda-todo-ignore-deadlines t)
+;;; '(org-agenda-todo-ignore-scheduled t)
+;; '(org-agenda-todo-ignore-with-date t)
+;; '(org-agenda-window-setup (quote other-window))
+;; '(org-deadline-warning-days 7)
+;; '(org-export-html-style "<link rel=\"stylesheet\" type=\"text/css\" href=\"mystyles.css\">")
+;; '(org-fast-tag-selection-single-key nil)
+;; '(org-log-done (quote (done)))
+;; '(org-refile-targets (quote (("newgtd.org" :maxlevel . 1) ("someday.org" :level . 2))))
+;; '(org-reverse-note-order nil)
+;; '(org-tags-column -78)
+;; '(org-tags-match-list-sublevels nil)
+;; '(org-time-stamp-rounding-minutes 5)
+;; '(org-use-fast-todo-selection t)
+;; '(org-use-tag-inheritance nil)
+;; )
+;;
+;;(setq org-agenda-custom-commands
+;;      '(
+;;	("P" "Projects"   
+;;	 ((tags "PROJECT")))
+;;
+;;	("H" "Office and Home Lists"
+;;	 ((agenda)
+;;          (tags-todo "OFFICE")
+;;          (tags-todo "HOME")
+;;          (tags-todo "COMPUTER")
+;;          (tags-todo "DVD")
+;;          (tags-todo "READING")))
+;;
+;;	("D" "Daily Action List"
+;;	 (
+;;          (agenda "" ((org-agenda-ndays 1)
+;;                      (org-agenda-sorting-strategy
+;;                       (quote ((agenda time-up priority-down tag-up) )))
+;;                      (org-deadline-warning-days 0)
+;;                      ))))
+;;	)
+;;      )
+
+;;(defun gtd ()
+;;   (interactive)
+;;   (find-file "~/Documents/org/docs/my.org")
+;; )
+;;
+(setq note-root-dir "~/Documents/work3")
+
+(setq note-publish-dir
+      (expand-file-name "public_html" (directory-file-name
+                                       (file-name-directory
+                                        (directory-file-name note-root-dir)))))
+
+(setq org-publish-project-alist
+      `(("note-org"
+         :base-directory ,note-root-dir
+         :publishing-directory ,note-publish-dir
+         :base-extension "org"
+         :recursive t
+         :publishing-function org-publish-org-to-html
+         :auto-index t
+         :index-filename "index.org"
+         :index-title "index"
+         :link-home "index.html")
+        ("note-static"
+         :base-directory ,note-root-dir
+         :publishing-directory ,note-publish-dir
+         :recursive t
+         :base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|swf\\|zip\\|gz\\|txt\\|el"
+         :publishing-function org-publish-attachment)
+        ("note" :components ("note-org" "note-static"))))
+
+;;(org-publish-project "note" "FORCE")
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; remember-mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;q org-directory "~/Documents/org/")
+;q org-default-notes-file "~/.notes")
+;q remember-annotation-functions '(org-remember-annotation))
+;q remember-handler-functions '(org-remember-handler))
+;-hook 'remember-mode-hook 'org-remember-apply-template)
+;ine-key global-map "\C-cr" 'org-remember)
+;
+;tq org-remember-templates
+;'(("Todo" ?t "* TODO %^{Brief Description} %^g\n%?\nAdded: %U" "~/gtd/newgtd.org" "Tasks")
+;  ("Journal"   ?j "** %^{Head Line} %U %^g\n%i%?"  "~/gtd/journal.org")
+;  ("Clipboard" ?c "** %^{Head Line} %U %^g\n%c\n%?"  "~/gtd/journal.org")
+;  ("Receipt"   ?r "** %^{BriefDesc} %U %^g\n%?"   "~/gtd/finances.org")
+;  ("Book" ?b "** %^{Book Title} %t :BOOK: \n%[~/.book_template.txt]\n" 
+;     "~/gtd/journal.org")
+;  ("Film" ?f "** %^{Film Title} %t :FILM: \n%[~/.film_template.txt]\n" 
+;   "~/gtd/journal.org")
+;  ("Daily Review" ?a "** %t :COACH: \n%[~/.daily_review.txt]\n" 
+;     "~/gtd/journal.org")
+;  ("Someday"   ?s "** %^{Someday Heading} %U\n%?\n"  "~/gtd/someday.org")
+;  ("Vocab"   ?v "** %^{Word?}\n%?\n"  "~/gtd/vocab.org")
+;  ("test"   ?w "** %^{Word?}\ni:%i\nT:%T\nU:%U\nt:%t\nc:%c\n%?\n"  "~/gtd/vocab.org")
+; )
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ruby-mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(add-to-list 'load-path "~/emacs/Extensions/ruby-mode")
+(require 'ruby-mode)
+;;
+;;;;This gives access to a function called run-ruby, which runs IRB in an Emacs buffer.
+(require 'inf-ruby)
+;;
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;; rails-mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;
+(add-to-list 'load-path "~/emacs/Extensions/rails")
+
